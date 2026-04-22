@@ -1091,7 +1091,7 @@ const Inbox = ({ inquiries, go }) => {
         </div>
         {visible.map(id => {
           const q = inquiries[id];
-          const next = q.status === "sent" ? "sent" : "inquiry";
+          const next = "inquiry"; // always go to thread - user can navigate to sent from there
           return (
             <div key={id} className={"inq-row " + (q.vip ? "vip" : "")} onClick={() => go(next, id)}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1144,14 +1144,23 @@ const InquirySteps = ({ q }) => {
   ];
   const replyStep = q.vip
     ? { id: "reply", agent: "VIP", badgeCls: "vip", color: "var(--vip)", time: "09:23:03", sublabel: L ? "Rule r3 triggered" : "Regel r3 aktiv", label: t("step_vip_no_reply"), kind: "email-out-vip" }
-    : { id: "reply", agent: "SYSTEM", badgeCls: "system", color: "var(--accent)", time: "09:23:47", sublabel: L ? "Auto-Reply sent" : "Auto-Reply gesendet", label: t("step_auto_reply"), kind: "email-out" };
+    : { id: "reply", agent: "ISQ7", badgeCls: "system", color: "var(--accent)", time: "09:23:47", sublabel: L ? "Auto-Reply sent" : "Auto-Reply gesendet", label: t("step_auto_reply"), kind: "email-out" };
   const steps = [
     ...baseSteps, replyStep,
     { id: "market", agent: "ISQ7", badgeCls: "pricing", color: "var(--gold)", time: "09:24:01", sublabel: L ? "Market analysis (8.7s)" : "Markt-Analyse (8.7s)", label: t("step_market"), kind: "market" },
-    { id: "event", agent: "SYSTEM", badgeCls: "pdf", color: "var(--purple)", time: "09:24:10", sublabel: L ? "Event detected" : "Event erkannt", label: eventName(q.event, lang), kind: "event" },
-    { id: "pdf", agent: "SYSTEM", badgeCls: "pdf", color: "var(--purple)", time: "09:24:11", sublabel: L ? "Proposal ready" : "Angebot bereit", label: `${q.proposalId || "ANG-2026-0342"}.pdf ${L ? "ready for review" : "wartet auf Freigabe"} (${fmt(total(q))})`, kind: "extract" },
+    { id: "event", agent: "ISQ7", badgeCls: "pdf", color: "var(--purple)", time: "09:24:10", sublabel: L ? "Event detected" : "Event erkannt", label: eventName(q.event, lang), kind: "event" },
+    { id: "pdf", agent: "ISQ7", badgeCls: "pdf", color: "var(--purple)", time: "09:24:11", sublabel: L ? "Proposal ready" : "Angebot bereit", label: `${q.proposalId || "ANG-2026-0342"}.pdf ${L ? "ready for review" : "wartet auf Freigabe"} (${fmt(total(q))})`, kind: "extract" },
     { id: "wait", agent: "STATUS", badgeCls: "status", color: "var(--gold)", time: "09:24:12", sublabel: L ? "Awaiting human" : "Wartet auf Mensch", label: L ? "Proposal queued for review. Notification sent to revenue manager." : "Angebot wartet auf Review. Revenue Manager wurde benachrichtigt.", kind: null },
   ];
+  // Append persisted audit log + chat history as timeline events
+  (q.auditLog || []).forEach((entry, idx) => {
+    if (entry.action === "adjusted") {
+      steps.push({ id: "adj-me-" + idx, agent: entry.by ? entry.by.split(" ")[0].toUpperCase() : "ANDREAS", badgeCls: "status", color: "var(--accent)", time: entry.at, sublabel: L ? "Suggested change" : "Änderung vorgeschlagen", label: entry.userText || entry.details, kind: null });
+      steps.push({ id: "adj-ai-" + idx, agent: "ISQ7", badgeCls: "ai", color: "var(--green)", time: entry.at, sublabel: L ? "Applied" : "Angewendet", label: entry.details, kind: null });
+    } else if (entry.action === "approved") {
+      steps.push({ id: "appr-" + idx, agent: entry.by ? entry.by.split(" ")[0].toUpperCase() : "ANDREAS", badgeCls: "ai", color: "var(--green)", time: entry.at, sublabel: L ? "Approved & sent" : "Freigegeben & gesendet", label: entry.details, kind: null });
+    }
+  });
   return (
     <div className="vtl">
       {steps.map((s, i) => {
@@ -1373,6 +1382,17 @@ const Inquiry = ({ q, go, updateInquiry }) => {
         </div>
       )}
 
+      {q.status === "sent" && (
+        <div className="card mb-16" style={{ padding: "14px 20px", display: "flex", alignItems: "center", gap: 14, borderLeft: "3px solid var(--green)", borderColor: "rgba(34,197,94,0.25)", background: "rgba(34,197,94,0.04)" }}>
+          <div style={{ fontSize: 20, color: "var(--green)" }}>✓</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--green)" }}>{lang === "en" ? "Proposal sent" : "Angebot gesendet"}</div>
+            <div style={{ fontSize: 12, color: "var(--text-sub)" }}>{lang === "en" ? "by" : "von"} {q.sentBy || "Andreas Bauer"} · {q.sentAt || "-"}</div>
+          </div>
+          <button className="btn btn-sm" onClick={() => go("sent", q.id)}>{lang === "en" ? "View sent details" : "Sent-Ansicht öffnen"} {"→"}</button>
+        </div>
+      )}
+
       <div className="card">
         <div className="section-head">
           <h3>{t("ai_did_in_47s")}</h3>
@@ -1404,16 +1424,28 @@ const Pricing = ({ q, go, updateInquiry }) => {
   const t = useT(); const { lang } = useLang();
   const [sending, setSending] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [chat, setChat] = useState([]);
+  const [chat, setChat] = useState(() => {
+    const existing = [];
+    (q.auditLog || []).forEach(e => {
+      if (e.action === "adjusted") {
+        if (e.userText) existing.push({ role: "me", text: e.userText });
+        if (e.details) existing.push({ role: "ai", text: e.details });
+      }
+    });
+    return existing;
+  });
   const [input, setInput] = useState("");
   const maxP = Math.max(...q.market.map(m => m.p), q.rate);
 
   const approve = () => {
     if (sending) return;
     setSending(true);
+    const now = new Date().toLocaleTimeString(lang === "en" ? "en-US" : "de-DE", { hour: "2-digit", minute: "2-digit" });
+    const approvalEntry = { action: "approved", by: "Andreas Bauer", at: now, details: (lang === "en" ? "Approved at " : "Freigegeben bei ") + fmt(total(q)) };
     setTimeout(() => {
       updateInquiry(q.id, {
         status: "sent", tag: "Gesendet", tone: "green", sentAt: lang === "en" ? "Just now" : "Gerade eben", sentBy: "Andreas Bauer",
+        auditLog: [...(q.auditLog || []), approvalEntry],
         followUps: [
           { at: "T+0", label: lang === "en" ? "Proposal sent via E-Response" : "Angebot gesendet per E-Response", done: true },
           { at: "T+4h", label: lang === "en" ? "Open receipt expected" : "Öffnungsbestätigung erwartet", done: false },
@@ -1431,9 +1463,14 @@ const Pricing = ({ q, go, updateInquiry }) => {
     const newChat = [...chat, { role: "me", text }];
     setInput("");
     const parsed = localAdjust(text, q);
+    const now = new Date().toLocaleTimeString(lang === "en" ? "en-US" : "de-DE", { hour: "2-digit", minute: "2-digit" });
     if (parsed && parsed.lines) {
       setChat([...newChat, { role: "ai", text: parsed.explanation }]);
-      updateInquiry(q.id, { lines: parsed.lines, rate: parsed.rate || q.rate });
+      const adjustEntry = { action: "adjusted", by: "Andreas Bauer", at: now, userText: text, details: parsed.explanation };
+      updateInquiry(q.id, {
+        lines: parsed.lines, rate: parsed.rate || q.rate,
+        auditLog: [...(q.auditLog || []), adjustEntry],
+      });
     } else {
       setChat([...newChat, { role: "ai", text: t("adjust_error"), error: true }]);
     }
@@ -1515,8 +1552,8 @@ const Pricing = ({ q, go, updateInquiry }) => {
       )}
 
       <div className="flex gap-12 mt-24">
-        <button className="btn btn-primary flex-1" onClick={approve} disabled={sending} style={{ justifyContent: "center" }}>
-          {sending ? t("sending") : t("approve_send")}
+        <button className="btn btn-primary flex-1" onClick={approve} disabled={sending || q.status === "sent"} style={{ justifyContent: "center", opacity: q.status === "sent" ? 0.55 : 1 }}>
+          {q.status === "sent" ? (lang === "en" ? "✓ Already sent" : "✓ Bereits gesendet") : (sending ? t("sending") : t("approve_send"))}
         </button>
         <button className="btn" onClick={() => setAdjustOpen(!adjustOpen)}>
           ✦ {adjustOpen ? t("close") : t("adjust")}
