@@ -1165,9 +1165,9 @@ const InquirySteps = ({ q }) => {
     <div className="vtl">
       {steps.map((s, i) => {
         const isOpen = open === s.id;
-        const clsRev = i < 8 ? ` r${i + 1}` : "";
+        const delay = (0.05 + i * 0.08) + "s";
         return (
-          <div key={s.id} className={"vtl-event" + clsRev}>
+          <div key={s.id} className="vtl-event" style={{ animationDelay: delay }}>
             <div className="vtl-time">{s.time}</div>
             <div className="vtl-spine" style={{ color: s.color, background: s.color }} />
             <div className={"vtl-card" + (isOpen ? " expanded" : "")} onClick={() => s.kind && setOpen(isOpen ? null : s.id)} style={s.kind ? {} : { cursor: "default" }}>
@@ -1546,7 +1546,7 @@ const Pricing = ({ q, go, updateInquiry }) => {
             <textarea className="ta" rows={2} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); applyAdjust(); } }}
               placeholder={t("adjust_input_ph")} />
-            <button className="btn btn-gold" onClick={() => applyAdjust()} disabled={!input.trim()}>{t("adjust_send")}</button>
+            <button className={"btn btn-gold" + (input.trim() ? " is-ready" : "")} onClick={() => applyAdjust()} disabled={!input.trim()}>{t("adjust_send")}</button>
           </div>
         </div>
       )}
@@ -1735,7 +1735,7 @@ const CompetitorEditor = ({ competitors, toggle, remove, add, update, reset, lan
               placeholder="119"
               style={{ width: "100%", padding: "8px 10px", background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)", fontSize: 13, fontFamily: "inherit" }} />
           </div>
-          <button onClick={submit} disabled={!valid} className="btn btn-gold btn-sm" style={{ whiteSpace: "nowrap" }}>
+          <button onClick={submit} disabled={!valid} className={"btn btn-gold btn-sm" + (valid ? " is-ready" : "")} style={{ whiteSpace: "nowrap" }}>
             {L ? "+ Add" : "+ OK"}
           </button>
         </div>
@@ -2251,7 +2251,7 @@ const ConfigBody = () => {
                       placeholder={CAT_HINTS[cat]} />
                     <div className="flex" style={{ justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
                       <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-m)" }}>{t("ctrl_enter")}</span>
-                      <button className="btn btn-gold btn-sm" onClick={() => addRuleForCat(cat)} disabled={!(drafts[cat] || "").trim()}>{t("add_rule_btn")}</button>
+                      <button className={"btn btn-gold btn-sm" + ((drafts[cat] || "").trim() ? " is-ready" : "")} onClick={() => addRuleForCat(cat)} disabled={!(drafts[cat] || "").trim()}>{t("add_rule_btn")}</button>
                     </div>
                   </div>
                 )}
@@ -2277,7 +2277,7 @@ const ConfigBody = () => {
       </div>
 
       <div className="flex gap-12 mt-24">
-        {dirty && <button className="btn btn-gold" onClick={saveVersion}>{t("save_version")}</button>}
+        {dirty && <button className="btn btn-gold is-ready" onClick={saveVersion}>{t("save_version")}</button>}
         <button className="btn">{t("history")} ({versions.length})</button>
         <button className="btn" onClick={resetDefaults}>{t("reset_defaults")}</button>
       </div>

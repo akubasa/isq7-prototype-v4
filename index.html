@@ -87,8 +87,30 @@
   .btn:active { transform: translateY(1px); }
   .btn-primary { background: linear-gradient(135deg, var(--green), #34d399); color: #022c17; border: 0; padding: 14px 22px; font-size: 15px; font-weight: 800; }
   .btn-primary:hover { box-shadow: 0 4px 14px rgba(34, 197, 94, 0.25); background: linear-gradient(135deg, var(--green), #34d399); }
-  .btn-accent { background: linear-gradient(135deg, var(--accent), #818cf8); color: #0a0a12; border: 0; font-weight: 800; }
-  .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #0a0a12; border: 0; font-weight: 800; }
+  .btn-accent { background: linear-gradient(135deg, var(--accent), #818cf8); color: #0a0a12; border: 0; font-weight: 800; position: relative; }
+  .btn-accent:hover:not(:disabled) { background: linear-gradient(135deg, #818cf8, var(--accent)); color: #0a0a12; border: 0; box-shadow: 0 4px 18px rgba(96, 165, 250, 0.32); transform: translateY(-1px); }
+  .btn-accent:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #0a0a12; border: 0; font-weight: 800; position: relative; isolation: isolate; overflow: visible; }
+  .btn-gold:hover:not(:disabled) { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: #0a0a12; border: 0; box-shadow: 0 4px 18px rgba(196, 160, 60, 0.38); transform: translateY(-1px); }
+  .btn-gold:disabled { opacity: 0.42; cursor: not-allowed; transform: none; box-shadow: none; }
+  /* OSQ1-style rotating gold halo when ready to press */
+  .btn-gold.is-ready { animation: btn-glow-pulse 2.4s ease-in-out infinite; }
+  .btn-gold.is-ready::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 13px;
+    background: conic-gradient(from 0deg, transparent 0deg, var(--gold-light) 40deg, #ffe28a 80deg, var(--gold-light) 120deg, transparent 180deg, transparent 360deg);
+    z-index: -1;
+    animation: btn-spin 2.4s linear infinite;
+    filter: blur(2px);
+    pointer-events: none;
+  }
+  @keyframes btn-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes btn-glow-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(196, 160, 60, 0), 0 2px 10px rgba(196, 160, 60, 0.18); }
+    50% { box-shadow: 0 0 0 2px rgba(196, 160, 60, 0.28), 0 4px 20px rgba(196, 160, 60, 0.45); }
+  }
   .btn-ghost { background: transparent; border: 0; color: var(--text-muted); padding: 8px 14px; border-radius: 8px; }
   .btn-ghost:hover { background: rgba(255,255,255,0.04); color: var(--text); }
   .btn-sm { padding: 8px 14px; font-size: 13px; }
