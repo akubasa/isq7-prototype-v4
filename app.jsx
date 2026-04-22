@@ -587,7 +587,7 @@ Director Group Sales · The Lakeview Vienna`,
   omv: {
     id: "omv", co: "OMV AG", from: "Sarah Mueller", email: "sarah.mueller@omv.com",
     summary: "25 Zimmer · Konferenz · 15.-17. April", summaryEn: "25 rooms · Conference · Apr 15-17",
-    value: 9530, tag: "Neu", tone: "accent", status: "new",
+    value: 9530, tag: "Bepreist", tone: "accent", status: "priced",
     emailSubject: "Anfrage: Konferenz + Zimmerkontingent 15.-17. April",
     emailBody: `Sehr geehrtes Lakeview-Team,
 
@@ -691,7 +691,7 @@ Head of Corporate Events · Erste Group`,
   bmw: {
     id: "bmw", co: "BMW Wien", from: "Lisa Hofmann", email: "lisa.hofmann@bmw.at",
     summary: "12 Zimmer · Incentive · 28.-30. April", summaryEn: "12 rooms · Incentive · Apr 28-30",
-    value: 5720, tag: "Neu", tone: "gold", status: "new",
+    value: 5720, tag: "Bepreist", tone: "gold", status: "priced",
     emailSubject: "Incentive-Trip Top-Verkäufer · 28.-30. April",
     emailBody: `Hallo!
 
@@ -2324,10 +2324,18 @@ const App = () => {
   }, [inquiries]);
 
   const go = (s, id) => {
-    if (id) setActiveId(id);
-    else if (s === "inbox") setActiveId(null);
-    setStep(s);
-    setSection("inbox");
+    const isSection = ["rates", "analytics", "archive", "settings"].includes(s);
+    if (isSection) {
+      setSection(s);
+      setActiveId(null);
+      setStep("inbox");
+      if (s !== "archive") setArchiveId(null);
+    } else {
+      if (id) setActiveId(id);
+      else if (s === "inbox") setActiveId(null);
+      setStep(s);
+      setSection("inbox");
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const updateInquiry = (id, patch) => {
